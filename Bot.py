@@ -1,3 +1,5 @@
+from random import randint
+
 #Maximum size of the board
 SIZE = 8
 
@@ -45,11 +47,53 @@ def checkBound(position):
 	elif position[1] < 0 or position[1] >= SIZE:
 		return False
 
+	return True
+
+
+def checkNext(board, location, player):
+	arr = []
+
+	#Checks the left side
+	left = add(location, DIRECTION[player][0])
+	
+	if checkBound(left) == False:
+		pass
+
+	elif board[left[0]][left[1]] == 0:
+		pass
+
+	elif board[left[0]][left[1]] != player:
+		newLeft = add(left, DIRECTION[player][0])
+
+		if checkBound(newLeft) and board[newLeft[0]][newLeft[1]] == 0:
+			arr.append(newLeft)
+		
+
+	#Checks the right side
+	right = add(location, DIRECTION[player][1])
+
+	if checkBound(right) == False:
+		pass
+
+	elif board[right[0]][right[1]] == 0:
+		pass
+
+	elif board[right[0]][right[1]] != player:
+
+		newRight = add(right, DIRECTION[player][1])
+
+		if checkBound(newRight) and board[newRight[0]][newRight[1]] == 0:
+			arr.append(newRight)
+
+
+	return arr
+
 
 #Analyzes a starting location and finds a possible move to make 
 def findLocation(board, startLocation, direction, player):
 	Move = {
 		"start": startLocation,
+		"piecesJumped": []
 		"locations": []
 	}
 
@@ -64,13 +108,45 @@ def findLocation(board, startLocation, direction, player):
 	elif board[loc[0]][loc[1]] != player:
 		locNew = add(loc, direction)
 
-		if board[locNew[0]][locNew[1]] == 0:
+		if checkBound(locNew) and board[locNew[0]][locNew[1]] == 0:
 			Move["locations"].append(locNew)
+			possible = checkNext(board, locNew, player)
+
+			while len(possible) != 0:
+				nextMove = possible[0]
+				Move["locations"].append(nextMove)
+				possible = checkNext(board, nextMove, player)
+				
+		else:
+			return None
 
 	else: 
 		return None
 
 	return Move
+
+
+def getMoves(board, player, startPosition):
+	allMoves = []
+
+	for x in startPosition:
+		for y in DIRECTION[player]:
+			tempMove = findLocation(board, x, y, player)
+
+			if tempMove is not None:
+				allMoves.append(tempMove)
+
+	return allMoves
+
+
+def printMove(Move):
+	print(str(Move["start"][0]) + " " + str(Move["start"][1]))
+
+	print(len(Move["locations"]))
+
+	for x in Move["locations"]:
+		print(str(x[0]) + " " + str(x[1]))
+
 
 
 #Displays the board as an 8 * 8 grid
@@ -83,5 +159,8 @@ if __name__ == "__main__":
 	board, player, opponent = readBoard()
 	startPosition = getStartPosition(board, player)
 
+	allMoves = getMoves(board, player, startPosition)
 
+	ranMove = max(allMoves, key = lambda x: len(x["locations"]))
 
+	printMove(ranMove)
