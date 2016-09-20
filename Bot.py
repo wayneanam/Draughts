@@ -50,6 +50,34 @@ def checkBound(position):
 	return True
 
 
+def analyzeFinal(board, player, position):
+	score = 0
+	opponent = 1
+
+	if player == 1:
+		opponent = 2
+
+	#Favors jumping into empty areas or areas with my own pieces
+	for y in DIRECTION[player]:	
+		temp = add(y, position)
+
+		if checkBound(temp):
+			if board[temp[0]][temp[1]] == player:
+				score += 10
+			
+			elif board[temp[0]][temp[1]] == 0:
+				score += 30
+
+			else:
+				score -= 10
+
+		else:
+			if position[0] == 0 or position[0] == 7:
+				score += 50
+
+
+	return score
+
 def checkNext(board, location, player):
 	arr = []
 
@@ -93,7 +121,8 @@ def checkNext(board, location, player):
 def findLocation(board, startLocation, direction, player):
 	Move = {
 		"start": startLocation,
-		"piecesJumped": []
+		"piecesJumped": 0,
+		"score": 0,
 		"locations": []
 	}
 
@@ -110,11 +139,13 @@ def findLocation(board, startLocation, direction, player):
 
 		if checkBound(locNew) and board[locNew[0]][locNew[1]] == 0:
 			Move["locations"].append(locNew)
+			Move["piecesJumped"] += 1
 			possible = checkNext(board, locNew, player)
 
 			while len(possible) != 0:
 				nextMove = possible[0]
 				Move["locations"].append(nextMove)
+				Move["piecesJumped"] += 1
 				possible = checkNext(board, nextMove, player)
 				
 		else:
@@ -123,7 +154,15 @@ def findLocation(board, startLocation, direction, player):
 	else: 
 		return None
 
+
+	if Move["locations"][-1][1] == 0 or Move["locations"][-1][1] == 7:
+		Move["score"] += 100
+
+	Move["score"] += analyzeFinal(board, player, Move["locations"][-1])
+	Move["score"] += Move["piecesJumped"] * 100
+
 	return Move
+
 
 
 def getMoves(board, player, startPosition):
@@ -137,6 +176,7 @@ def getMoves(board, player, startPosition):
 				allMoves.append(tempMove)
 
 	return allMoves
+
 
 
 def printMove(Move):
@@ -157,10 +197,9 @@ def displayBoard(board):
 #Main Function
 if __name__ == "__main__":
 	board, player, opponent = readBoard()
+
 	startPosition = getStartPosition(board, player)
-
 	allMoves = getMoves(board, player, startPosition)
+	highestMove = max(allMoves, key = lambda y: (y["score"]))
 
-	ranMove = max(allMoves, key = lambda x: len(x["locations"]))
-
-	printMove(ranMove)
+	printMove(highestMove)
