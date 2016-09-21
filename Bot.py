@@ -1,4 +1,5 @@
 from random import randint
+import copy
 
 #Maximum size of the board
 SIZE = 8
@@ -50,36 +51,9 @@ def checkBound(position):
 	return True
 
 
-def analyzeFinal(board, player, position):
-	score = 0
-	opponent = 1
-
-	if player == 1:
-		opponent = 2
-
-	#Favors jumping into empty areas or areas with my own pieces
-	for y in DIRECTION[player]:	
-		temp = add(y, position)
-
-		if checkBound(temp):
-			if board[temp[0]][temp[1]] == player:
-				score += 10
-			
-			elif board[temp[0]][temp[1]] == 0:
-				score += 30
-
-			else:
-				score -= 10
-
-		else:
-			if position[0] == 0 or position[0] == 7:
-				score += 50
-
-
-	return score
-
 def checkNext(board, location, player):
 	arr = []
+	piecesJumped = []
 
 	#Checks the left side
 	left = add(location, DIRECTION[player][0])
@@ -95,6 +69,7 @@ def checkNext(board, location, player):
 
 		if checkBound(newLeft) and board[newLeft[0]][newLeft[1]] == 0:
 			arr.append(newLeft)
+			piecesJumped.append(left)
 		
 
 	#Checks the right side
@@ -112,18 +87,20 @@ def checkNext(board, location, player):
 
 		if checkBound(newRight) and board[newRight[0]][newRight[1]] == 0:
 			arr.append(newRight)
+			piecesJumped.append(right)
 
 
-	return arr
+	return arr, piecesJumped
 
 
 #Analyzes a starting location and finds a possible move to make 
 def findLocation(board, startLocation, direction, player):
 	Move = {
 		"start": startLocation,
-		"piecesJumped": 0,
+		"piecesJumped": [],
 		"score": 0,
-		"locations": []
+		"locations": [],
+		"simulatedStart": (0, 0)
 	}
 
 	loc = add(startLocation, direction)
@@ -139,14 +116,15 @@ def findLocation(board, startLocation, direction, player):
 
 		if checkBound(locNew) and board[locNew[0]][locNew[1]] == 0:
 			Move["locations"].append(locNew)
-			Move["piecesJumped"] += 1
-			possible = checkNext(board, locNew, player)
+			Move["piecesJumped"].append(loc)
+			possible, possibleJumps = checkNext(board, locNew, player)
 
 			while len(possible) != 0:
 				nextMove = possible[0]
+				nextJump = possibleJumps[0]
 				Move["locations"].append(nextMove)
-				Move["piecesJumped"] += 1
-				possible = checkNext(board, nextMove, player)
+				Move["piecesJumped"].append(nextJump)
+				possible, possibleJumps = checkNext(board, nextMove, player)
 				
 		else:
 			return None
@@ -154,12 +132,46 @@ def findLocation(board, startLocation, direction, player):
 	else: 
 		return None
 
+	return Move
 
-	if Move["locations"][-1][1] == 0 or Move["locations"][-1][1] == 7:
-		Move["score"] += 100
+#Get moves for simulation
+def simFindLocation(board, startLocation, direction, player, simulationStart):
+	Move = {
+		"start": startLocation,
+		"piecesJumped": [],
+		"score": 0,
+		"locations": [],
+		"simulatedStart": simulationStart
+	}
 
-	Move["score"] += analyzeFinal(board, player, Move["locations"][-1])
-	Move["score"] += Move["piecesJumped"] * 100
+	loc = add(startLocation, direction)
+
+	if checkBound(loc) == False:
+		return None
+	
+	elif board[loc[0]][loc[1]] == 0:
+		Move["locations"].append(loc)
+
+	elif board[loc[0]][loc[1]] != player:
+		locNew = add(loc, direction)
+
+		if checkBound(locNew) and board[locNew[0]][locNew[1]] == 0:
+			Move["locations"].append(locNew)
+			Move["piecesJumped"].append(loc)
+			possible, possibleJumps = checkNext(board, locNew, player)
+
+			while len(possible) != 0:
+				nextMove = possible[0]
+				nextJump = possibleJumps[0]
+				Move["locations"].append(nextMove)
+				Move["piecesJumped"].append(nextJump)
+				possible, possibleJumps = checkNext(board, nextMove, player)
+				
+		else:
+			return None
+
+	else: 
+		return None
 
 	return Move
 
@@ -171,12 +183,85 @@ def getMoves(board, player, startPosition):
 	for x in startPosition:
 		for y in DIRECTION[player]:
 			tempMove = findLocation(board, x, y, player)
-
+		
 			if tempMove is not None:
 				allMoves.append(tempMove)
-
+		
 	return allMoves
 
+
+def simGetMoves(board, player, startPosition, simulation):
+	allMoves = []
+
+	for z in simulation:
+		for x in startPosition:
+			for y in DIRECTION[player]:
+				tempMove = simFindLocation(board, x, y, player, z)
+			
+				if tempMove is not None:
+					allMoves.append(tempMove)
+			
+		return allMoves
+
+
+def simulateBoard(oppBoard, singleMove, player):
+	#Simulates a move by clearing the start position and adding and end position
+	oppBoard[singleMove["start"][0]][singleMove["start"][1]] = 0
+	oppBoard[singleMove["locations"][-1][0]][singleMove["locations"][-1][1]] = player
+		
+	#Removes all pieces that were jumped from the board
+	for y in singleMove["piecesJumped"]:
+		oppBoard[y[0]][y[1]] = 0
+
+
+	return oppBoard
+
+
+def simulateAllBoards(board, allMoves, player, opponent, simulationStart):
+	for x in allMoves:
+		oppBoard = copy.deepcopy(board)
+		simulatedBoard = simulateBoard(oppBoard, x, player)
+		oppStartPositon = getStartPosition(oppBoard, opponent)
+		allOppMoves = simGetMoves(oppBoard, opponent, oppStartPositon, simulationStart) 
+	
+	return allOppMoves
+
+
+def calculateScores(board, player, allMoves, allOppMoves):
+
+	opponent = 1
+
+	if player == 1:
+		opponent = 2
+
+	for x in allMoves:
+		if len(x["piecesJumped"]) > 0:
+			x["score"] += len(x["piecesJumped"]) * 500
+
+
+		for y in allOppMoves:
+			if x["start"] == y["simulatedStart"]:
+				x["score"] -= len(y["locations"]) * 50
+
+			if x["locations"][-1][1] == 0 or x["locations"][-1][1] == 7:
+				x["score"] += 10
+
+			if x["locations"][0] == 0 or x["locations"][0] == 7:
+				x["score"] += 10
+
+			for z in DIRECTION[player]:
+				temp = add(z, x["locations"][-1])
+
+				if checkBound(temp):
+					if board[temp[0]][temp[1]] == opponent:
+						x["score"] -= 10
+
+			for a in DIRECTION[opponent]:
+				oneBehind = add(a, x["locations"][-1])
+
+				if checkBound(temp):
+					if board[oneBehind[0]][oneBehind[1]] == player:
+						x["score"] += 2
 
 
 def printMove(Move):
@@ -194,12 +279,15 @@ def displayBoard(board):
 	for row in board:
 		print(" ".join([str(x) for x in row ]))
 
+
 #Main Function
 if __name__ == "__main__":
 	board, player, opponent = readBoard()
-
 	startPosition = getStartPosition(board, player)
 	allMoves = getMoves(board, player, startPosition)
-	highestMove = max(allMoves, key = lambda y: (y["score"]))
 
-	printMove(highestMove)
+	allOppMoves = simulateAllBoards(board, allMoves, player, opponent, startPosition)
+	calculateScores(board, player, allMoves, allOppMoves)
+	highestScore = max(allMoves, key = lambda y: (y["score"]))
+
+	printMove(highestScore)
