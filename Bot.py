@@ -4,17 +4,19 @@ import copy
 #Maximum size of the board
 SIZE = 8
 
+"""
+The keys 1 and 2 stand for players 1 and 2 respectively.
+Player one can only move down to the left and down to the right.
+Player two can only move up to the left and up to the right.
+"""
 
-#The keys 1 and 2 stand for players 1 and 2 respectively
-#Player one can only move down to the left and down to the right
-#Player two can only move up to the left and up to the right
 DIRECTION = { 
 	1: [(1, -1), (1, 1)],
 	2: [(-1,-1), (-1,1)]
 }
 
 
-#Reads the current board states and returns the board, player and opponent
+#This function reads the current board states and returns the board, player and opponent
 def readBoard():
 	board = []
 
@@ -51,6 +53,7 @@ def checkBound(position):
 	return True
 
 
+#This function checks what pieces reside in the adjacent diagnol
 def checkNext(board, location, player):
 	arr = []
 	piecesJumped = []
@@ -134,7 +137,8 @@ def findLocation(board, startLocation, direction, player):
 
 	return Move
 
-#Get moves for simulation
+  
+#Analyzes a starting location and finds a possible move that the opponent can make
 def simFindLocation(board, startLocation, direction, player, simulationStart):
 	Move = {
 		"start": startLocation,
@@ -176,7 +180,7 @@ def simFindLocation(board, startLocation, direction, player, simulationStart):
 	return Move
 
 
-
+#This function loops through all start positions and finds valid moves
 def getMoves(board, player, startPosition):
 	allMoves = []
 
@@ -190,6 +194,7 @@ def getMoves(board, player, startPosition):
 	return allMoves
 
 
+#This function loops through all start positions and finds the opponents valid moves
 def simGetMoves(board, player, startPosition, simulation):
 	allMoves = []
 
@@ -204,6 +209,7 @@ def simGetMoves(board, player, startPosition, simulation):
 		return allMoves
 
 
+#Given the opposing players board this function simulates a single move   
 def simulateBoard(oppBoard, singleMove, player):
 	#Simulates a move by clearing the start position and adding and end position
 	oppBoard[singleMove["start"][0]][singleMove["start"][1]] = 0
@@ -217,6 +223,17 @@ def simulateBoard(oppBoard, singleMove, player):
 	return oppBoard
 
 
+
+"""
+Note: THis function does not work as intended. It only gets the the last 
+      possible move. After simulating a move the function then goes on to
+      simulate the remaining moves but does NOT calculate the score.
+      The calculateScores function should have been called and the highest
+      scoring move should have been appended onto an array for further
+      analysis.
+"""
+
+#Finds all possible moves and stores them
 def simulateAllBoards(board, allMoves, player, opponent, simulationStart):
 	for x in allMoves:
 		oppBoard = copy.deepcopy(board)
@@ -226,7 +243,13 @@ def simulateAllBoards(board, allMoves, player, opponent, simulationStart):
 	
 	return allOppMoves
 
-
+  
+  
+"""Prefers playing near my own pieces and at empty spaces. If a piece that I
+   have taken enables my opponent to take more pieces then that move will be
+   rated quite low.
+"""
+#The scoring function for the program
 def calculateScores(board, player, allMoves, allOppMoves):
 
 	opponent = 1
@@ -264,6 +287,7 @@ def calculateScores(board, player, allMoves, allOppMoves):
 						x["score"] += 2
 
 
+#This function prints the standard output for any given move 
 def printMove(Move):
 	print(str(Move["start"][0]) + " " + str(Move["start"][1]))
 
