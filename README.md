@@ -18,7 +18,7 @@ This is a visual representation of the board.
 
 **Running the Bot**
 
-To run the bot, run bot.py and input an 8*8 grid filled with 0's, 1's, and two's. followed by a number either 1 or 2 to indicate which players turn it is. For examples on how a standard input looks like open files firstMove.txt, tripleJump.txt or currentObstacle.txt. Input can be piped in or entered manually.
+To run the bot, run bot.py and input an 8*8 grid filled with 0's, 1's, and 2's. followed by a number either 1 or 2 to indicate which players turn it is. For examples on how a standard input looks like open files firstMove.txt, tripleJump.txt or currentObstacle.txt. Input can be piped in or entered manually.
 
 
 **Results**
