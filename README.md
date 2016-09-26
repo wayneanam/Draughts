@@ -23,4 +23,4 @@ To run the bot, run bot.py and input an 8*8 grid filled with 0's, 1's, and 2's. 
 
 **Results**
 
-My Bot placed 45th in the competition.
+My Bot placed 45th out of 4770 in the competition.
